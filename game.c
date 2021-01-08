@@ -814,11 +814,9 @@ void main() {
         }
 
         if (joypad() & J_A) {attack = 1;
-        } else if (joypad() & J_B) {
-            block = 1;}
+        } else if (joypad() & J_B) {block = 1;}
 
-        if (joypad() & J_SELECT) {pause();
-        } else if (joypad() & J_START) {printf("Score = %d \n", score);;}
+        if (joypad() & J_SELECT) {pause();} 
 
         if (joypad() & J_LEFT) {
             if (canplayermove(valerio.x - 2, valerio.y, &valerio)) {
