@@ -2,38 +2,44 @@
 //
 // Created by Marcus A. Mosley
 // Created on January 2020
-// This program includes a score
+// This program includes a Game Over Scene
 
 #include <gb/gb.h>
 #include <rand.h>
 #include <stdio.h>
-#include "logo_data.c"
-#include "logo_map.c"
-#include "titlescreen_data.c"
-#include "titlescreen_map.c"
+#include <stdlib.h>
+#include <string.h>
 #include "battle_data.c"
 #include "battle_map.c"
 #include "cave_data.c"
 #include "cave_map.c"
-#include "controls_data.c"
-#include "controls_map.c"
-#include "gameover_map.c"
-#include "journey_data.c"
-#include "journey_map.c"
-#include "letter_data.c"
-#include "letter_map.c"
-#include "pause_data.c"
-#include "pause_map.c"
-#include "return_data.c"
-#include "return_map.c"
 #include "ValerioCharacter.c"
-#include "ValerioSprites.c"
-UINT8 i;
 
+UINT8 i;
 ValerioCharacter valerio, enemy_1, enemy_2, enemy_3, enemy_4, enemy_5;
 UBYTE spritesize = 8, stage, attack, block;
 unsigned int seed = 0;
 int dmg, score, topright, topleft, botright, botleft, botrightalt, botleftalt;
+
+extern const unsigned char * controls_data[];
+extern const unsigned char * controls_map[];
+extern const unsigned char * gameover_data[];
+extern const unsigned char * gameover_map[];
+extern const unsigned char * journey_data[];
+extern const unsigned char * journey_map[];
+extern const unsigned char * letter_data[];
+extern const unsigned char * letter_map[];
+extern const unsigned char * logo_data[];
+extern const unsigned char * logo_map[];
+extern const unsigned char * pause_data[];
+extern const unsigned char * pause_map[];
+extern const unsigned char * return_data[];
+extern const unsigned char * return_map[];
+extern const unsigned char * titlescreen_data[];
+extern const unsigned char * titlescreen_map[];
+extern const unsigned char * ValerioSprites[];
+
+extern void prntscore(int score);
 
 void performantdelay(UINT8 numloops) {
     UINT8 ii;
@@ -44,11 +50,7 @@ void performantdelay(UINT8 numloops) {
 
 int random(int max, int min) {
     int randint;
-    randint = rand() % max;
-    if (randint < 0) {
-        randint = -1 * randint;
-    }
-    randint += min;
+    randint = abs(rand() % max) + min;
     return randint;
 }
 
@@ -92,41 +94,46 @@ void fadein() {
 void sign() {
     fadeout();
     HIDE_SPRITES;
-    set_bkg_data(0, 103, letter_data);
-    set_bkg_tiles(0, 0, 20, 18, letter_map);
+
+    SWITCH_ROM_MBC1(4);
+        set_bkg_data(0, 103, letter_data);
+        set_bkg_tiles(0, 0, 20, 18, letter_map);
     fadein();
 
     waitpad(J_A);
 
     DISPLAY_OFF;
-    set_bkg_data(0, 99, controls_data);
-    set_bkg_tiles(0, 0, 20, 18, controls_map);
+
+    SWITCH_ROM_MBC1(1);
+        set_bkg_data(0, 99, controls_data);
+        set_bkg_tiles(0, 0, 20, 18, controls_map);
     DISPLAY_ON;
 
     waitpad(J_B);
 
     fadeout();
     SHOW_SPRITES;
+
     set_bkg_data(0, 97, cave_data);
     set_bkg_tiles(0, 0, 20, 18, cave_map);
     fadein();
 }
 
-void gameover() {
+void end() {
+    DISPLAY_OFF;
     HIDE_SPRITES;
-    fadeout();
 
-    set_bkg_data(0, 36, pause_data);
-    set_bkg_tiles(0, 0, 20, 18, gameover_map);
+    SWITCH_ROM_MBC1(2);
+        set_bkg_data(0, 26, gameover_data);
+        set_bkg_tiles(0, 0, 20, 18, gameover_map);
+    DISPLAY_ON;
 
-    fadein();
+    waitpad(J_A);
+    SWITCH_ROM_MBC1(9);
+        prntscore(score);
+    SHOW_SPRITES;
 
     waitpad(J_START);
-    DISPLAY_OFF;
-    HIDE_BKG;
-    printf("Score = %d \n", score);
-
-    performantdelay(60);
     reset();
 }
 
@@ -152,8 +159,8 @@ void enemydeath(ValerioCharacter* character) {
     set_sprite_tile(character->spritids[3], 54);
     character->x = 0;
     character->y = 0;
-    movegamecharacter(character, 0, 0);
-    score += (character->type * 50);
+    movegamecharacter(character, character->x, character->y);
+    score += (character->type * 5);
     character->dead = 1;
 }
 
@@ -175,8 +182,10 @@ UBYTE canplayermove(UINT8 newplayerx, UINT8 newplayery,
             // Change to Battle Scene
             DISPLAY_OFF;
             HIDE_SPRITES;
-            set_bkg_data(0, 33, journey_data);
-            set_bkg_tiles(0, 0, 20, 18, journey_map);
+
+            SWITCH_ROM_MBC1(3);
+                set_bkg_data(0, 33, journey_data);
+                set_bkg_tiles(0, 0, 20, 18, journey_map);
             DISPLAY_ON;
             while (1) {
                 if (joypad() & J_A) {
@@ -185,6 +194,7 @@ UBYTE canplayermove(UINT8 newplayerx, UINT8 newplayery,
                     newplayerx = 80;
                     newplayery = 120;
                     movegamecharacter(&valerio, newplayerx, newplayery);
+
                     set_bkg_data(0, 51, battle_data);
                     set_bkg_tiles(0, 0, 20, 18, battle_map);
                     SHOW_SPRITES;
@@ -193,6 +203,7 @@ UBYTE canplayermove(UINT8 newplayerx, UINT8 newplayery,
                 } else if (joypad() & J_B) {
                     DISPLAY_OFF;
                     SHOW_SPRITES;
+
                     set_bkg_data(0, 97, cave_data);
                     set_bkg_tiles(0, 0, 20, 18, cave_map);
                     DISPLAY_ON;
@@ -205,14 +216,17 @@ UBYTE canplayermove(UINT8 newplayerx, UINT8 newplayery,
         if (tileindexTL == 329 || tileindexTL == 330) {
             DISPLAY_OFF;
             HIDE_SPRITES;
-            set_bkg_data(0, 32, return_data);
-            set_bkg_tiles(0, 0, 20, 18, return_map);
+
+            SWITCH_ROM_MBC1(7);
+                set_bkg_data(0, 32, return_data);
+                set_bkg_tiles(0, 0, 20, 18, return_map);
             DISPLAY_ON;
 
             waitpad(J_B);
 
             DISPLAY_OFF;
             SHOW_SPRITES;
+
             set_bkg_data(0, 51, battle_data);
             set_bkg_tiles(0, 0, 20, 18, battle_map);
             DISPLAY_ON;
@@ -261,7 +275,7 @@ UBYTE canplayermove(UINT8 newplayerx, UINT8 newplayery,
             }
         }
     }
-    if (dmg >= 2) {gameover();}
+    if (dmg >= 2) {end();}
     return result;
 }
 
@@ -748,8 +762,9 @@ void enemymove(ValerioCharacter* enemy) {
 }
 
 void start() {
-    set_bkg_data(0, 110, logo_data);
-    set_bkg_tiles(0, 0, 20, 18, logo_map);
+    SWITCH_ROM_MBC1(5);
+        set_bkg_data(0, 110, logo_data);
+        set_bkg_tiles(0, 0, 20, 18, logo_map);
 
     SHOW_BKG;
     DISPLAY_ON;
@@ -758,8 +773,9 @@ void start() {
 
     fadeout();
 
-    set_bkg_data(0, 45, titlescreen_data);
-    set_bkg_tiles(0, 0, 20, 18, titlescreen_map);
+    SWITCH_ROM_MBC1(8);
+        set_bkg_data(0, 45, titlescreen_data);
+        set_bkg_tiles(0, 0, 20, 18, titlescreen_map);
 
     fadein();
 
@@ -771,16 +787,24 @@ void start() {
 void pause() {
     DISPLAY_OFF;
     HIDE_SPRITES;
-    set_bkg_data(0, 36, pause_data);
-    set_bkg_tiles(0, 0, 20, 18, pause_map);
+
+    SWITCH_ROM_MBC1(6);
+        set_bkg_data(0, 29, pause_data);
+        set_bkg_tiles(0, 0, 20, 18, pause_map);
     DISPLAY_ON;
 
     waitpad(J_START);
 
     DISPLAY_OFF;
     SHOW_SPRITES;
-    set_bkg_data(0, 97, cave_data);
-    set_bkg_tiles(0, 0, 20, 18, cave_map);
+
+    if (stage == 0) {
+        set_bkg_data(0, 52, cave_data);
+        set_bkg_tiles(0, 0, 20, 18, cave_map);
+    } else {
+        set_bkg_data(0, 97, battle_data);
+        set_bkg_tiles(0, 0, 20, 18, battle_map);
+    }
     DISPLAY_ON;
 }
 
@@ -792,7 +816,8 @@ void main() {
     set_bkg_data(0, 97, cave_data);
     set_bkg_tiles(0, 0, 20, 18, cave_map);
 
-    set_sprite_data(0, 55, ValerioSprites);
+    SWITCH_ROM_MBC1(10);
+        set_sprite_data(0, 55, ValerioSprites);
     setupvalerio();
 
     SHOW_SPRITES;
@@ -816,7 +841,7 @@ void main() {
         if (joypad() & J_A) {attack = 1;
         } else if (joypad() & J_B) {block = 1;}
 
-        if (joypad() & J_SELECT) {pause();} 
+        if (joypad() & J_SELECT) {pause();}
 
         if (joypad() & J_LEFT) {
             if (canplayermove(valerio.x - 2, valerio.y, &valerio)) {
